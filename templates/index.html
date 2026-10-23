@@ -1,0 +1,203 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SalaryIQ | Employee Salary Predictor</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+
+<header class="topbar">
+    <a class="brand" href="/">Salary<span>IQ</span></a>
+    <span class="status"><span class="dot"></span> ML prediction dashboard</span>
+</header>
+
+<main class="container">
+    <section class="hero">
+        <div>
+            <p class="eyebrow">SMART CAREER ANALYTICS</p>
+            <h1>Know your <span>earning potential.</span></h1>
+            <p class="subtitle">
+                Explore estimated salary using your experience,
+                education and selected career role.
+            </p>
+        </div>
+        <div class="hero-icon">₹</div>
+    </section>
+
+    <section class="stats">
+        <article class="stat-card">
+            <p>Employees in demo dataset</p>
+            <h2>{{ employee_count }}</h2>
+        </article>
+        <article class="stat-card">
+            <p>Average demo salary</p>
+            <h2>₹{{ "{:,.0f}".format(avg_salary) }}</h2>
+        </article>
+        <article class="stat-card">
+            <p>Random Forest MAE</p>
+            <h2>₹{{ "{:,.0f}".format(mae) }}</h2>
+        </article>
+        <article class="stat-card">
+            <p>Random Forest R²</p>
+            <h2>{{ r2 }}</h2>
+        </article>
+    </section>
+
+    <section class="main-grid">
+        <article class="panel form-panel">
+            <div class="section-heading">
+                <div>
+                    <p class="eyebrow">SALARY ESTIMATOR</p>
+                    <h2>Tell us about yourself</h2>
+                </div>
+                <span class="number-icon">01</span>
+            </div>
+
+            <form id="salaryForm">
+                <label for="age">Age</label>
+                <input id="age" type="number" min="18" max="65"
+                       placeholder="e.g. 25" required>
+
+                <label for="experience">Work experience (years)</label>
+                <input id="experience" type="number" min="0"
+                       placeholder="e.g. 3" required>
+
+                <label for="education">Education level</label>
+                <select id="education" required>
+                    <option value="">Choose education</option>
+                    {% for level in education_levels %}
+                    <option value="{{ level }}">{{ level }}</option>
+                    {% endfor %}
+                </select>
+
+                <label for="job">Job role</label>
+                <select id="job" required>
+                    <option value="">Choose job role</option>
+                    {% for job in jobs %}
+                    <option value="{{ job }}">{{ job }}</option>
+                    {% endfor %}
+                </select>
+
+                <button type="submit" id="predictBtn">
+                    Predict my salary <span>→</span>
+                </button>
+                <p class="error" id="predictionError" role="alert"></p>
+            </form>
+
+            <div class="result" id="resultBox" hidden>
+                <p class="eyebrow">ESTIMATED ANNUAL SALARY</p>
+                <h2 id="salaryResult">₹0</h2>
+                <p id="resultMessage"></p>
+                <p class="disclaimer">
+                    This is a demo estimate, not a guaranteed market salary.
+                </p>
+            </div>
+        </article>
+
+        <article class="panel chart-panel">
+            <div class="section-heading">
+                <div>
+                    <p class="eyebrow">CAREER INSIGHTS</p>
+                    <h2>Average salary by role</h2>
+                </div>
+            </div>
+            <div class="chart-wrap">
+                <canvas id="salaryChart"></canvas>
+            </div>
+            <p class="chart-note">
+                Average salaries are calculated from the generated demo dataset.
+            </p>
+        </article>
+    </section>
+
+    <section class="panel analytics-panel">
+        <div class="section-heading">
+            <div>
+                <p class="eyebrow">MODEL ANALYTICS</p>
+                <h2>Explore predictions</h2>
+            </div>
+        </div>
+
+        <div class="analytics-grid">
+            <div class="chart-wrap small-chart">
+                <h3>Salary distribution</h3>
+                <canvas id="distributionChart"></canvas>
+            </div>
+
+            <div class="chart-wrap small-chart">
+                <h3>Actual vs predicted</h3>
+                <canvas id="actualChart"></canvas>
+            </div>
+
+            <div class="chart-wrap small-chart">
+                <h3>Prediction errors</h3>
+                <canvas id="residualChart"></canvas>
+            </div>
+        </div>
+
+        <p id="chartError" class="error" role="alert"></p>
+    </section>
+
+    <section class="panel evaluation-panel">
+        <div class="section-heading">
+            <div>
+                <p class="eyebrow">MODEL EVALUATION</p>
+                <h2>Regression Model Comparison</h2>
+                <p class="table-subtitle">
+                    All models use the same training and test split.
+                </p>
+            </div>
+        </div>
+
+        <div class="table-scroll">
+            <table class="evaluation-table">
+                <thead>
+                    <tr>
+                        <th>Model</th>
+                        <th>R²</th>
+                        <th>MAE (₹)</th>
+                        <th>MSE</th>
+                        <th>RMSE (₹)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in model_comparison %}
+                    <tr>
+                        <td class="model-name">{{ item.name }}</td>
+                        <td>{{ "%.3f"|format(item.r2) }}</td>
+                        <td>{{ "{:,.2f}".format(item.mae) }}</td>
+                        <td>{{ "{:,.2f}".format(item.mse) }}</td>
+                        <td>{{ "{:,.2f}".format(item.rmse) }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <div class="metric-explanations">
+            <p><strong>R²:</strong> Measures how well predictions explain salary variation. Higher is generally better; it can be negative.</p>
+            <p><strong>MAE:</strong> Average absolute difference between actual and predicted salary.</p>
+            <p><strong>MSE:</strong> Average squared prediction error; larger errors have greater influence.</p>
+            <p><strong>RMSE:</strong> Square root of MSE, expressed in salary units.</p>
+        </div>
+
+        <p class="chart-note">
+            Evaluation scores are based on synthetic demo data and do not establish real-world salary accuracy.
+        </p>
+    </section>
+
+    <p class="footer-note">
+        SalaryIQ · Machine Learning educational project · Synthetic demo data
+    </p>
+</main>
+
+<script>
+    window.salaryDashboardData = {{ salary_dashboard_data | tojson }};
+</script>
+<script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>
